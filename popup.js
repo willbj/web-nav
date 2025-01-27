@@ -149,9 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // 添加右键菜单
       div.addEventListener('contextmenu', function(e) {
         e.preventDefault();
-        if (confirm(`是否删除分类"${category}"？\n注意：删除分类会同时删除该分类下的所有网站！`)) {
-          deleteCategory(category);
-        }
+        showCategoryContextMenu(e, category);
       });
       
       div.addEventListener('click', () => selectCategory(category));
@@ -195,9 +193,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // 添加右键菜单
         div.addEventListener('contextmenu', function(e) {
           e.preventDefault();
-          if (confirm(`是否删除网站"${card.name}"？`)) {
-            deleteCard(categoryName, index);
-          }
+          showContextMenu(e, {
+            name: card.name,
+            url: card.url,
+            categoryName: categoryName,
+            index: index
+          });
         });
         
         cardList.appendChild(div);
@@ -335,4 +336,205 @@ document.addEventListener('DOMContentLoaded', function() {
       item.classList.remove('category-drag-over');
     });
   }
+
+  // 显示右键菜单
+  function showContextMenu(e, cardInfo) {
+    // 移除已有的右键菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+      existingMenu.remove();
+    }
+    
+    // 创建右键菜单
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.style.left = `${e.pageX}px`;
+    menu.style.top = `${e.pageY}px`;
+    
+    menu.innerHTML = `
+      <div class="menu-item edit">编辑</div>
+      <div class="menu-item delete">删除</div>
+    `;
+    
+    // 编辑功能
+    menu.querySelector('.edit').addEventListener('click', () => {
+      showEditCardModal(cardInfo);
+      menu.remove();
+    });
+    
+    // 删除功能
+    menu.querySelector('.delete').addEventListener('click', () => {
+      if (confirm(`是否删除网站"${cardInfo.name}"？`)) {
+        deleteCard(cardInfo.categoryName, cardInfo.index);
+      }
+      menu.remove();
+    });
+    
+    // 点击其他地方关闭菜单
+    document.addEventListener('click', function closeMenu() {
+      menu.remove();
+      document.removeEventListener('click', closeMenu);
+    });
+    
+    document.body.appendChild(menu);
+  }
+
+  // 显示编辑卡片弹窗
+  function showEditCardModal(cardInfo) {
+    const modal = document.getElementById('addCardModal');
+    const nameInput = document.getElementById('siteName');
+    const urlInput = document.getElementById('siteUrl');
+    
+    modal.classList.add('show');
+    nameInput.value = cardInfo.name;
+    urlInput.value = cardInfo.url;
+    nameInput.focus();
+    
+    document.getElementById('cancelAdd').onclick = function() {
+      modal.classList.remove('show');
+    };
+    
+    document.getElementById('confirmAdd').onclick = function() {
+      const name = nameInput.value.trim();
+      let url = urlInput.value.trim();
+      
+      if (!name || !url) {
+        alert('请填写完整信息！');
+        return;
+      }
+      
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      
+      // 更新卡片信息
+      cards[cardInfo.categoryName][cardInfo.index] = {
+        name: name,
+        url: url
+      };
+      
+      saveData();
+      renderCards(currentCategory);
+      modal.classList.remove('show');
+    };
+  }
+
+  // 显示分类右键菜单
+  function showCategoryContextMenu(e, category) {
+    // 移除已有的右键菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+      existingMenu.remove();
+    }
+    
+    // 创建右键菜单
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.style.left = `${e.pageX}px`;
+    menu.style.top = `${e.pageY}px`;
+    
+    menu.innerHTML = `
+      <div class="menu-item edit">编辑</div>
+      <div class="menu-item delete">删除</div>
+    `;
+    
+    // 编辑功能
+    menu.querySelector('.edit').addEventListener('click', () => {
+      const newName = prompt('请输入新的分类名称：', category);
+      if (newName && newName.trim() && newName.trim() !== category) {
+        if (categories.includes(newName.trim())) {
+          alert('该分类名称已存在！');
+          return;
+        }
+        // 更新分类名称
+        const index = categories.indexOf(category);
+        categories[index] = newName.trim();
+        // 更新卡片数据
+        cards[newName.trim()] = cards[category];
+        delete cards[category];
+        // 更新当前选中的分类
+        if (currentCategory === category) {
+          currentCategory = newName.trim();
+        }
+        saveData();
+        renderCategories();
+        renderCards(currentCategory);
+      }
+      menu.remove();
+    });
+    
+    // 删除功能
+    menu.querySelector('.delete').addEventListener('click', () => {
+      // 检查分类下是否有卡片
+      if (cards[category] && cards[category].length > 0) {
+        alert('该分类下还有网站卡片，不能删除！');
+      } else {
+        if (confirm(`确定要删除分类"${category}"吗？`)) {
+          deleteCategory(category);
+        }
+      }
+      menu.remove();
+    });
+    
+    // 点击其他地方关闭菜单
+    document.addEventListener('click', function closeMenu() {
+      menu.remove();
+      document.removeEventListener('click', closeMenu);
+    });
+    
+    document.body.appendChild(menu);
+  }
+
+  // 导出数据
+  document.getElementById('exportData').addEventListener('click', function() {
+    const data = {
+      categories: categories,
+      cards: cards
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'website-nav-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // 导入数据
+  document.getElementById('importData').addEventListener('click', function() {
+    document.getElementById('importFile').click();
+  });
+
+  document.getElementById('importFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.categories && data.cards) {
+            if (confirm('导入数据将覆盖现有数据，是否继续？')) {
+              categories = data.categories;
+              cards = data.cards;
+              saveData();
+              renderCategories();
+              if (categories.length > 0) {
+                selectCategory(categories[0]);
+              }
+              alert('数据导入成功！');
+            }
+          } else {
+            alert('无效的数据格式！');
+          }
+        } catch (error) {
+          alert('导入失败：' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+  });
 }); 

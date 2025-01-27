@@ -10,6 +10,11 @@
     <!-- 左侧分类区域 -->
     <div class="category-section">
       <h2>分类管理</h2>
+      <div class="data-operations">
+        <button id="exportData" class="data-btn">导出数据</button>
+        <button id="importData" class="data-btn">导入数据</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;">
+      </div>
       <div class="category-list" id="categoryList"></div>
       <div class="add-button" id="addCategory">
         <span class="plus">+</span>
