@@ -101,6 +101,43 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       div.textContent = category;
       
+      // 允许接收卡片拖拽
+      div.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        if (draggedItem && draggedItem.classList.contains('card-item')) {
+          this.classList.add('category-drag-over');
+        }
+      });
+      
+      div.addEventListener('dragleave', function(e) {
+        this.classList.remove('category-drag-over');
+      });
+      
+      div.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('category-drag-over');
+        
+        // 如果是卡片被拖拽到分类上
+        if (draggedItem && draggedItem.classList.contains('card-item')) {
+          const targetCategory = this.dataset.category;
+          const sourceCategory = draggedItem.dataset.sourceCategory;
+          const cardIndex = parseInt(draggedItem.dataset.index);
+          
+          // 如果目标分类不同，则移动卡片
+          if (targetCategory !== sourceCategory) {
+            const card = cards[sourceCategory][cardIndex];
+            cards[sourceCategory].splice(cardIndex, 1);
+            cards[targetCategory].push(card);
+            saveData();
+            
+            // 重新渲染两个分类的卡片
+            if (currentCategory === sourceCategory || currentCategory === targetCategory) {
+              renderCards(currentCategory);
+            }
+          }
+        }
+      });
+      
       // 添加拖拽事件
       div.addEventListener('dragstart', handleCategoryDragStart);
       div.addEventListener('dragover', handleCategoryDragOver);
@@ -144,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 获取网站域名
         const domain = new URL(card.url).hostname;
         div.innerHTML = `
-          <img class="site-icon" src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" onerror="this.style.display='none'">
+          <img class="site-icon" src="${new URL(card.url).origin}/favicon.ico" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%234285f4%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2250%22 fill=%22white%22>${card.name[0].toUpperCase()}</text></svg>'">
           <div class="card-name">${card.name}</div>
         `;
         
@@ -178,6 +215,8 @@ document.addEventListener('DOMContentLoaded', function() {
     draggedItem = this;
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
+    // 存储源分类信息
+    draggedItem.dataset.sourceCategory = currentCategory;
   }
   
   function handleDragOver(e) {
