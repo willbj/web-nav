@@ -1,16 +1,13 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #f5f5f5;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .container {
   display: flex;
-  min-height: 100vh;
-  background: #f5f5f5;
-  margin: 0 auto;
-  max-width: 1200px;
+  height: 100vh;
 }
 
 .category-section {
@@ -19,14 +16,18 @@ body {
   background: #fff;
   border-right: 1px solid #eee;
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .card-section {
   width: 80%;
   padding: 20px;
   background: #fff;
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 h2 {
@@ -293,4 +294,11 @@ h2 {
 
 .data-btn:hover {
   background: #3367d6;
+}
+
+.confirm-message {
+  margin: 20px 0;
+  color: #333;
+  text-align: center;
+  line-height: 1.5;
 } 

@@ -15,18 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 添加分类
   document.getElementById('addCategory').addEventListener('click', function() {
-    const categoryName = prompt('请输入分类名称：');
-    if (categoryName && categoryName.trim()) {
-      if (categories.includes(categoryName.trim())) {
-        alert('该分类已存在！');
-        return;
-      }
-      categories.push(categoryName.trim());
-      cards[categoryName.trim()] = [];
-      saveData();
-      renderCategories();
-      selectCategory(categoryName.trim());
-    }
+    showAddCategoryModal();
   });
 
   // 添加卡片
@@ -440,26 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 编辑功能
     menu.querySelector('.edit').addEventListener('click', () => {
-      const newName = prompt('请输入新的分类名称：', category);
-      if (newName && newName.trim() && newName.trim() !== category) {
-        if (categories.includes(newName.trim())) {
-          alert('该分类名称已存在！');
-          return;
-        }
-        // 更新分类名称
-        const index = categories.indexOf(category);
-        categories[index] = newName.trim();
-        // 更新卡片数据
-        cards[newName.trim()] = cards[category];
-        delete cards[category];
-        // 更新当前选中的分类
-        if (currentCategory === category) {
-          currentCategory = newName.trim();
-        }
-        saveData();
-        renderCategories();
-        renderCards(currentCategory);
-      }
+      showEditCategoryModal(category);
       menu.remove();
     });
     
@@ -469,9 +439,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (cards[category] && cards[category].length > 0) {
         alert('该分类下还有网站卡片，不能删除！');
       } else {
-        if (confirm(`确定要删除分类"${category}"吗？`)) {
-          deleteCategory(category);
-        }
+        showDeleteConfirm(
+          `确定要删除分类"${category}"吗？\n删除后无法恢复。`,
+          () => deleteCategory(category)
+        );
       }
       menu.remove();
     });
@@ -483,6 +454,66 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.body.appendChild(menu);
+  }
+
+  // 显示编辑分类弹窗
+  function showEditCategoryModal(category) {
+    const modal = document.getElementById('editCategoryModal');
+    const nameInput = document.getElementById('categoryName');
+    
+    modal.classList.add('show');
+    nameInput.value = category;
+    nameInput.focus();
+    
+    document.getElementById('cancelEditCategory').onclick = function() {
+      modal.classList.remove('show');
+    };
+    
+    document.getElementById('confirmEditCategory').onclick = function() {
+      const newName = nameInput.value.trim();
+      
+      if (!newName) {
+        alert('请输入分类名称！');
+        return;
+      }
+      
+      if (newName === category) {
+        modal.classList.remove('show');
+        return;
+      }
+      
+      if (categories.includes(newName)) {
+        alert('该分类名称已存在！');
+        return;
+      }
+      
+      // 更新分类名称
+      const index = categories.indexOf(category);
+      categories[index] = newName;
+      
+      // 更新卡片数据
+      cards[newName] = cards[category];
+      delete cards[category];
+      
+      // 更新当前选中的分类
+      if (currentCategory === category) {
+        currentCategory = newName;
+      }
+      
+      saveData();
+      renderCategories();
+      renderCards(currentCategory);
+      modal.classList.remove('show');
+    };
+    
+    // 添加回车键支持
+    nameInput.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('confirmEditCategory').click();
+      } else if (e.key === 'Escape') {
+        document.getElementById('cancelEditCategory').click();
+      }
+    });
   }
 
   // 导出数据
@@ -537,4 +568,66 @@ document.addEventListener('DOMContentLoaded', function() {
       reader.readAsText(file);
     }
   });
+
+  // 显示添加分类弹窗
+  function showAddCategoryModal() {
+    const modal = document.getElementById('addCategoryModal');
+    const nameInput = document.getElementById('newCategoryName');
+    
+    modal.classList.add('show');
+    nameInput.value = '';
+    nameInput.focus();
+    
+    document.getElementById('cancelAddCategory').onclick = function() {
+      modal.classList.remove('show');
+    };
+    
+    document.getElementById('confirmAddCategory').onclick = function() {
+      const name = nameInput.value.trim();
+      
+      if (!name) {
+        alert('请输入分类名称！');
+        return;
+      }
+      
+      if (categories.includes(name)) {
+        alert('该分类已存在！');
+        return;
+      }
+      
+      categories.push(name);
+      cards[name] = [];
+      saveData();
+      renderCategories();
+      selectCategory(name);
+      modal.classList.remove('show');
+    };
+    
+    // 添加回车键支持
+    nameInput.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('confirmAddCategory').click();
+      } else if (e.key === 'Escape') {
+        document.getElementById('cancelAddCategory').click();
+      }
+    });
+  }
+
+  // 显示删除确认弹窗
+  function showDeleteConfirm(message, onConfirm) {
+    const modal = document.getElementById('confirmDeleteModal');
+    const messageEl = modal.querySelector('.confirm-message');
+    
+    modal.classList.add('show');
+    messageEl.textContent = message;
+    
+    document.getElementById('cancelDelete').onclick = function() {
+      modal.classList.remove('show');
+    };
+    
+    document.getElementById('confirmDelete').onclick = function() {
+      onConfirm();
+      modal.classList.remove('show');
+    };
+  }
 }); 
